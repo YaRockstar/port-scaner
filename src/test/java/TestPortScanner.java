@@ -2,6 +2,8 @@ import org.example.scaner.PortScanner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestPortScanner {
 
     public static PortScanner portScanner;
@@ -14,5 +16,9 @@ public class TestPortScanner {
     @Test
     public void testScan() {
 
+    }
+
+    private void checkFileInDirectory(String directory) {
+        assertTrue(true);
     }
 }
