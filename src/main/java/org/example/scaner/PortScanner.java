@@ -1,8 +1,13 @@
 package org.example.scaner;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -28,41 +33,47 @@ public class PortScanner {
      */
     private static final int MAX_PORT_NUMBER = 65535;
 
+    /**
+     * Host value that user inputs in the console.
+     */
     private final String host;
+
+    /**
+     * Object of File class whose path user inputs in the console.
+     */
+    private final File file;
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Input a host address: ");
+        String host = scanner.nextLine();
+
+        System.out.print("Input a file path: ");
+        String path = scanner.nextLine();
+
+        new PortScanner(host, path).scan();
+    }
 
     /**
      * {@link PortScanner} constructor.
      *
      * @param host host address
      */
-    public PortScanner(String host) {
+    public PortScanner(String host, String path) {
         this.host = host;
-    }
-
-    /**
-     * Scanning all ports on the selected host.
-     */
-    public void scan() {
-        System.out.println("[INFO] Scanning is started");
-        for (int port = MIN_PORT_NUMBER; port <= MAX_PORT_NUMBER; port++) {
-            var inetSocketAddress = new InetSocketAddress(host, port);
-
-            try (var socket = new Socket()) {
-                socket.connect(inetSocketAddress, TIMEOUT);
-                System.out.printf("\u001B[32m[SUCCESS] Host %s, port %d is opened\u001B[0m\n", host, port);
-            } catch (IOException e) {
-//                System.err.println("[ERROR] " + e.getMessage());
-            }
-        }
-        System.out.println("[INFO] Scanning is finished");
+        this.file = new File(path);
     }
 
     /**
      * Scanning all ports on the selected host by multithreading.
      */
-    public void parallelScan() {
-        System.out.println("[INFO] Scanning is started");
+    public void scan() {
+        List<String> logs = new ArrayList<>();
         var executorService = Executors.newFixedThreadPool(THREADS);
+
+        System.out.println(ConsoleParams.START_LINE);
+        logs.add(ConsoleParams.START_LINE.getCode());
 
         for (int port = MIN_PORT_NUMBER; port <= MAX_PORT_NUMBER; port++) {
             final int currentPort = port;
@@ -71,9 +82,10 @@ public class PortScanner {
 
                 try (var socket = new Socket()) {
                     socket.connect(inetSocketAddress, TIMEOUT);
-                    System.out.printf("\u001B[32m[SUCCESS] Host %s, port %d is opened\u001B[0m\n", host, currentPort);
-                } catch (IOException e) {
-//                    System.err.println("[ERROR] " + e.getMessage());
+                    var message = "[SUCCESS] Host " + host + ", port " + currentPort + " is opened";
+                    System.out.println(ConsoleParams.GREEN_LIGHT + message + ConsoleParams.WHITE_LIGHT);
+                    logs.add(message);
+                } catch (IOException ignored) {
                 }
             });
         }
@@ -85,6 +97,22 @@ public class PortScanner {
             throw new RuntimeException(e);
         }
 
-        System.out.println("[INFO] Scanning is finished");
+        System.out.println(ConsoleParams.END_LINE);
+        logs.add(ConsoleParams.END_LINE.getCode());
+        writeToFile(file, logs);
+    }
+
+    /**
+     * Write logs to file.
+     *
+     * @param file object of File class
+     * @param logs list of logs
+     */
+    private void writeToFile(File file, List<String> logs) {
+        try {
+            Files.write(file.toPath(), logs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
